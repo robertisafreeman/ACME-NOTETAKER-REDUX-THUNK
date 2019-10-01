@@ -7,6 +7,7 @@
     <script src='https://cdnjs.cloudflare.com/ajax/libs/react-router-dom/5.0.1/react-router-dom.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/react-redux/7.1.1/react-redux.min.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.4/redux.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/redux-thunk/2.3.0/redux-thunk.min.js'></script>
 <style>
 body {
   font-family: verdana;
@@ -32,12 +33,54 @@ input, button {
   <body>
     <div id='root'></div>
     <script type='text/babel'>
-    const { combineReducers, createStory, applyMiddleware } = Redux;
+    const { combineReducers, createStore, applyMiddleware } = Redux;
     const { Provider, connect } = ReactRedux;
+    const { render } = ReactDOM;
+    const { Component } = React;
+    const { Thunk } = Redux;
+    const { HashRouter, Route, Link, Switch, Redirect } = ReactRouterDOM;
     const API = 'https://acme-users-api-rev.herokuapp.com/api';
     
-    const SET_USER = 'SET_USER';
+    const SET_USER = 'HONKY_TONK';
+    const SET_NOTE = 'BADONKY_DONK';
+
+
+    const setUser =  (user) => ({ type: SET_USER, user});
+
+    const reducer = combineReducers({
+        user: (state = {}, action) => {
+            switch(action.type){
+                case SET_USER:
+                return action.user;
+            }
+            return state;
+        }, 
+        notes: (state = {}, action) => {
+            switch(action.type){
+                case SET_NOTE:
+                return action.note;
+            }
+            return state;
+        }
+    })
     
+    
+    const store = createStore(reducer, applyMiddleware(ReduxThunk.default));
+
+    const userThunk = () => {
+        return async(dispatch) => {
+            const user = fetchUser();
+            dispatch(setUser(user));
+        }
+    };
+    const noteThunk = ( note ) => {
+        const user = fetchUser();
+        return async(dispatch) => {
+            const note = (await axios.post(`${API}/users/${user.id}/notes`, )).data
+            dispatch(setNote(note));
+        }
+    }
+    console.log(noteThunk())
 
     const fetchUser = async ()=> {
         const storage = window.localStorage;
@@ -56,9 +99,6 @@ input, button {
         return  user;
       };
 
-    const { render } = ReactDOM;
-    const { Component } = React;
-    const { HashRouter, Route, Link, Switch, Redirect } = ReactRouterDOM;
 
     const _Notes = ({ notes, archived, update, destroy })=> {
         return (
@@ -75,12 +115,13 @@ input, button {
           </ul>
         );
     };
-    const Notes = connect({ note }) => {
+
+    const Notes = connect(({ note }) => {
         return {
             note
         };
     })(_Notes)
-
+    
 
     const Nav = ({ path, notes })=> {
         const archived = notes.filter( note => note.archived);
